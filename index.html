@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text to Speech</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <textarea id="text" rows="4" cols="50"></textarea><br>
+    <button onclick="generateMP3()">Generate and Download MP3</button>
+
+    <script>
+        function generateMP3() {
+            var text = document.getElementById('text').value;
+            $.ajax({
+                url: 'https://api.voicerss.org/',
+                method: 'POST',
+                data: {
+                    key: 'YOUR_API_KEY', // VoicRSS APIキーを指定
+                    hl: 'en-us',
+                    src: text,
+                    c: 'MP3',
+                    f: '44khz_16bit_stereo',
+                    r: '0',
+                    b64: 'true'
+                },
+                success: function (response) {
+                    var audio = document.createElement('audio');
+                    audio.src = 'data:audio/mp3;base64,' + response;
+                    audio.controls = true;
+                    document.body.appendChild(audio);
+
+                    var link = document.createElement('a');
+                    link.href = audio.src;
+                    link.download = 'output.mp3';
+                    link.click();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
