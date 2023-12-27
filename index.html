@@ -1,50 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>C_curve</title>
+    <title>画像歪み修正プログラム</title>
     <style>
-        canvas {
-            border: 1px solid black;
+        #originalImage {
+            width: 400px;
+        }
+        #correctedImage {
+            width: 400px;
         }
     </style>
 </head>
 <body>
-    <canvas id="canvas" width="500" height="500"></canvas>
-    <script>
-        function c_curve(x, y, len, alpha_angle, iteration_n, ctx) {
-            let fx = x;
-            let fy = y;
-            let length = len;
-            let alpha = alpha_angle;
-            let it_n = iteration_n;
-            if (it_n > 0) {
-                length = (length / Math.sqrt(2));
-                c_curve(fx, fy, length, (alpha + 45), (it_n - 1), ctx); // Recursive Call
-                fx = (fx + (length * Math.cos(Math.toRadians(alpha + 45))));
-                fy = (fy + (length * Math.sin(Math.toRadians(alpha + 45))));
-                c_curve(fx, fy, length, (alpha - 45), (it_n - 1), ctx); // Recursive Call
-            } else {
-                let colors = ["red", "orange", "blue", "darkgray"];
-                ctx.strokeStyle = colors[Math.floor(Math.random() * colors.length)]; //For Choosing Different Color Values
-                ctx.beginPath();
-                ctx.moveTo(fx, fy);
-                ctx.lineTo(fx + (length * Math.cos(Math.toRadians(alpha))), fy + (length * Math.sin(Math.toRadians(alpha))));
-                ctx.stroke();
-            }
-        }
-
-        window.onload = function() {
-            let canvas = document.getElementById("canvas");
-            let ctx = canvas.getContext("2d");
-
-            let x = 200; // Stating x value
-            let y = 100; // Stating y value
-            let len = 150; // Stating length value
-            let alpha_angle = 90; // Stating angle value
-            let iteration_n = 15; // Stating iteration value
-
-            c_curve(x, y, len, alpha_angle, iteration_n, ctx);
-        };
-    </script>
+    <h1>画像歪み修正プログラム</h1>
+    <input type="file" id="imageInput">
+    <br>
+    <h2>元の画像</h2>
+    <img id="originalImage" src="">
+    <br>
+    <h2>修正後の画像</h2>
+    <img id="correctedImage" src="">
+    <script src="script.js"></script>
 </body>
 </html>
