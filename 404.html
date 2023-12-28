@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>永遠に同じ文を表示する</title>
+  <script>
+    function displayText() {
+      var element = document.getElementById('text');
+      element.innerHTML = 'この文は永遠に表示されます。';
+    }
+    
+    window.onload = function() {
+      setInterval(displayText, 1000); // 1秒ごとにdisplayText関数を実行
+    };
+  </script>
+</head>
+<body>
+  <div id="text"></div>
+</body>
+</html>
