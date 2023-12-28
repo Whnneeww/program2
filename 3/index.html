@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ファイルをダウンロードする</title>
+  <script>
+    function downloadFile() {
+      // ファイルを選択
+      var fileInput = document.getElementById('fileInput');
+      var file = fileInput.files[0];
+
+      // FileReaderオブジェクトを作成
+      var reader = new FileReader();
+
+      // ファイルが読み込まれた時の処理
+      reader.onload = function(event) {
+        // バイナリーデータを取得
+        var binaryData = event.target.result;
+
+        // バイナリーデータを16進数に変換
+        var hexData = binaryToHex(binaryData);
+
+        // ダウンロード用のテキストファイルを作成
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(hexData));
+        element.setAttribute('download', file.name + '.txt');
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        // テキストファイルをダウンロード
+        element.click();
+
+        // ダウンロード用のテキストファイルを削除
+        document.body.removeChild(element);
+      };
+
+      // ファイルをバイナリーデータとして読み込む
+      reader.readAsBinaryString(file);
+    }
+
+    function binaryToHex(binaryData) {
+      var hexData = '';
+      var length = binaryData.length;
+
+      for (var i = 0; i < length; i++) {
+        var hexByte = binaryData.charCodeAt(i).toString(16);
+        hexData += ('00' + hexByte).slice(-2);
+      }
+
+      return hexData;
+    }
+  </script>
+</head>
+<body>
+  <input type="file" id="fileInput">
+  <button onclick="downloadFile()">ダウンロード</button>
+</body>
+</html>
