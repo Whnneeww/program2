@@ -3,7 +3,11 @@
 <head>
   <title>ファイルをダウンロードする</title>
   <script>
-    function downloadFile(file) {
+    function downloadFile() {
+      // ファイルを選択
+      var fileInput = document.getElementById('fileInput');
+      var file = fileInput.files[0];
+
       // FileReaderオブジェクトを作成
       var reader = new FileReader();
 
@@ -44,28 +48,10 @@
 
       return hexData;
     }
-
-    // ドロップエリアの処理
-    function handleDrop(event) {
-      event.preventDefault();
-      
-      var files = event.dataTransfer.files;
-      
-      for (var i = 0; i < files.length; i++) {
-        var file = files[i];
-        downloadFile(file);
-      }
-    }
-
-    // ドラッグオーバーの処理
-    function handleDragOver(event) {
-      event.preventDefault();
-    }
   </script>
 </head>
 <body>
-  <div id="dropArea" ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
-    ファイルをドロップしてください
-  </div>
+  <input type="file" id="fileInput">
+  <button onclick="downloadFile()">ダウンロード</button>
 </body>
 </html>
