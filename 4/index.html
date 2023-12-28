@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>16進数をファイルに変換する</title>
+  <script>
+    function convertHexToBinary(hexData) {
+      var binaryData = '';
+      var length = hexData.length;
+
+      for (var i = 0; i < length; i += 2) {
+        var hexByte = hexData.substr(i, 2);
+        var decimalByte = parseInt(hexByte, 16);
+        binaryData += String.fromCharCode(decimalByte);
+      }
+
+      return binaryData;
+    }
+
+    function restoreFile(hexData, fileName) {
+      // 16進数をバイナリーデータに変換
+      var binaryData = convertHexToBinary(hexData);
+
+      // バイナリーデータをダウンロード用のBlobオブジェクトに変換
+      var blob = new Blob([binaryData], {type: 'application/octet-stream'});
+
+      // ダウンロード用のリンクを作成
+      var element = document.createElement('a');
+      element.href = window.URL.createObjectURL(blob);
+      element.download = fileName;
+      element.click();
+    }
+  </script>
+</head>
+<body>
+  <div>
+    <label for="hexInput">16進数:</label>
+    <input type="text" id="hexInput">
+    <button onclick="restoreFile()">ファイルを元に戻す</button>
+  </div>
+</body>
+</html>
