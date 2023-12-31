@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>音声抽出プログラム</title>
+</head>
+<body>
+  <input type="file" id="audioFile" accept="audio/*">
+  <button onclick="extractAudio()">音声を抽出する</button>
+
+  <script>
+    function extractAudio() {
+      var fileInput = document.getElementById('audioFile');
+      var file = fileInput.files[0];
+
+      var reader = new FileReader();
+      reader.onload = function(event) {
+        var audioData = event.target.result;
+
+        // 音声データを再生するか、処理するためのコードを追加します
+        console.log("音声データ:", audioData);
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>
