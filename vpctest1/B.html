@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>音声削除プログラム</title>
+    <script src="https://cdn.jsdelivr.net/npm/wavesurfer.js"></script>
+</head>
+<body>
+    <input type="file" id="audioFile" accept="audio/*">
+    <button onclick="removeAudio()">音声削除</button>
+    <div id="waveform"></div>
+
+    <script>
+        var wavesurfer;
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function () {
+            wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                waveColor: 'violet',
+                progressColor: 'purple'
+            });
+        });
+
+        // 音声ファイルの読み込み
+        function loadAudio(file) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                wavesurfer.loadBlob(e.target.result);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 音声削除
+        function removeAudio() {
+            wavesurfer.backend.muteAll();
+        }
+
+        // 音声ファイルの選択時に実行
+        document.getElementById('audioFile').addEventListener('change', function (e) {
+            var file = e.target.files[0];
+            loadAudio(file);
+        });
+    </script>
+</body>
+</html>
