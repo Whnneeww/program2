@@ -1,21 +1,15 @@
 <!DOCTYPE html> 
 <html> 
 <head> 
-<title>Sitemap</title> 
+<title>サイトマップ</title> 
 </head> 
 <body> 
 <h1>Sitemap</h1> 
 <ul id="urls"></ul> 
  
 <script> 
-  // Get the current URL 
-  const currentUrl = window.location.href; 
-  // Extract the base URL without the filename 
-  const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/')); 
-  const sitemapUrl = baseUrl + '/sitemap.xml'; 
-  document.title = 'Sitemap for ' + baseUrl; 
- 
-  fetch(sitemapUrl) 
+  const url = "https://huuze.f5.si/program2/sitemap.xml"; 
+  fetch(url) 
     .then(response => response.text()) 
     .then(xml => { 
       const parser = new DOMParser(); 
@@ -45,4 +39,4 @@
     }); 
 </script> 
 </body> 
-</html>
+</html> 
