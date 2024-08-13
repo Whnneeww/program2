@@ -1,0 +1,106 @@
+<!DOCTYPE html> 
+<html lang="ja"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>ファイル暗号化</title> 
+</head> 
+<body> 
+    <h1>ファイル暗号化</h1> 
+    <input type="file" id="fileInput"> 
+    <button id="encryptButton">暗号化</button> 
+    <p id="keyDisplay"> 
+ 
+    <script> 
+        const fileInput = document.getElementById('fileInput'); 
+        const encryptButton = document.getElementById('encryptButton'); 
+        const keyDisplay = document.getElementById('keyDisplay'); 
+ 
+        encryptButton.addEventListener('click', () => { 
+            const file = fileInput.files[0]; 
+            if (file) { 
+                // UUIDを生成 
+                const key = generateUUID(); 
+                keyDisplay.textContent = `暗号化キー: ${key}`; 
+ 
+                // ファイルを読み込む 
+                const reader = new FileReader(); 
+                reader.onload = (event) => { 
+                    const fileContent = event.target.result; 
+                    const encryptedContent = encrypt(fileContent, key); 
+ 
+                    // 暗号化されたファイルをダウンロード 
+                    downloadFile(encryptedContent, `${file.name}.i-i`); 
+                }; 
+                reader.readAsBinaryString(file); // バイナリデータとして読み込む 
+            } else { 
+                alert("ファイルを選択してください。"); 
+            } 
+        }); 
+ 
+        // UUID生成関数 
+        function generateUUID() { 
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { 
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); 
+                return v.toString(16); 
+            }); 
+        } 
+ 
+        // 暗号化関数 (簡易的なAES暗号化) 
+        function encrypt(data, key) { 
+            // 実際の暗号化処理は、より安全なライブラリを使用することを推奨します。 
+            // ここでは簡易的な例としてXOR暗号化を使用しています。 
+            const keyBytes = stringToBytes(key); 
+            const dataBytes = stringToBytes(data); 
+            let encryptedBytes = []; 
+ 
+            for (let i = 0; i < dataBytes.length; i++) { 
+                encryptedBytes.push(dataBytes[i] ^ keyBytes[i % keyBytes.length]); 
+            } 
+ 
+            return bytesToString(encryptedBytes); 
+        } 
+ 
+        // 解読関数 (簡易的なAES解読) 
+        function decrypt(data, key) { 
+            // 実際の解読処理は、より安全なライブラリを使用することを推奨します。 
+            // ここでは簡易的な例としてXOR暗号化を使用しています。 
+            const keyBytes = stringToBytes(key); 
+            const dataBytes = stringToBytes(data); 
+            let decryptedBytes = []; 
+ 
+            for (let i = 0; i < dataBytes.length; i++) { 
+                decryptedBytes.push(dataBytes[i] ^ keyBytes[i % keyBytes.length]); 
+            } 
+ 
+            return bytesToString(decryptedBytes); 
+        } 
+ 
+        // 文字列をバイト配列に変換 
+        function stringToBytes(str) { 
+            const bytes = []; 
+            for (let i = 0; i < str.length; i++) { 
+                bytes.push(str.charCodeAt(i)); 
+            } 
+            return bytes; 
+        } 
+ 
+        // バイト配列を文字列に変換 
+        function bytesToString(bytes) { 
+            let str = ""; 
+            for (let i = 0; i < bytes.length; i++) { 
+                str += String.fromCharCode(bytes[i]); 
+            } 
+            return str; 
+        } 
+ 
+        // ファイルをダウンロードする関数 
+        function downloadFile(content, filename) { 
+            const link = document.createElement('a'); 
+            link.href = `data:application/octet-stream;base64,${btoa(content)}`; 
+            link.download = filename; 
+            link.click(); 
+        } 
+    </script> 
+</body> 
+</html> 
