@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>バーコードリーダー</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <style>
+        #interactive {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            border: 1px solid black;
+        }
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #result {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>バーコードリーダー</h1>
+    <div id="interactive">
+        <video id="video" autoplay></video>
+    </div>
+    <div id="result"></div>
+    
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    Quagga.init({
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#video')    // ビデオ要素を指定
+        },
+        decoder: {
+            readers: ["ean_reader"] // 読み取るバーコードの種類
+        }
+    }, function(err) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        console.log("Quagga is ready!");
+        Quagga.start();
+    });
+
+    Quagga.onDetected(function(data) {
+        const code = data.codeResult.code; // バーコードの値
+        console.log("コードが検出されました: ", code);
+        document.getElementById('result').innerText = `検出されたバーコード: ${code}`;
+        
+        // 商品情報を取得する
+        fetchProductInfo(code);
+        Quagga.stop(); // 読み取りが完了したらストップ
+    });
+});
+
+// 商品情報を取得する関数
+function fetchProductInfo(barcode) {
+    const url = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 1) {
+                displayProductInfo(data.product);
+            } else {
+                document.getElementById('result').innerText = "商品が見つかりませんでした。";
+            }
+        })
+        .catch(error => {
+            console.error("エラー:", error);
+            document.getElementById('result').innerText = "情報取得中にエラーが発生しました。";
+        });
+}
+
+// 商品情報を表示する関数
+function displayProductInfo(product) {
+    let info = `<h2>商品情報</h2>`;
+    info += `<p>名前: ${product.product_name || "情報無し"}</p>`;
+    info += `<p>ブランド: ${product.brands || "情報無し"}</p>`;
+    info += `<p>カテゴリ: ${product.categories || "情報無し"}</p>`;
+    info += `<p>画像: <img src="${product.images?.front?.url || ''}" alt="商品画像"></p>`;
+    document.getElementById('result').innerHTML = info;
+}
+   </script>
+</body>
+</html>
