@@ -6,7 +6,9 @@
     <title>MIDI to WHMID Converter</title>
     <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi/dist/Midi.umd.js"></script> <!-- MIDIライブラリ -->
     <script src="https://program-library.i-i.f5.si/js/WhmidLibrary/1.0.0.js"></script> <!-- WHMIDライブラリ -->
-<script>
+</head>
+<body>
+    <script>
         let selectedFile = null;
 
         async function convertMidiToWhmid(file) {
@@ -54,8 +56,6 @@
             }
         }
     </script>
-</head>
-<body>
     <h1>MIDI to WHMID Converter</h1>
     <input type="file" id="midiFileInput" accept=".mid" onchange="onFileChange(event)" />
     <button id="convertButton" onclick="onConvertButtonClick()" disabled>WHMIDファイルを生成</button>
