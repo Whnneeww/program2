@@ -17,7 +17,7 @@
                 alert('MIDIファイルを選択してください。');
                 return;
             }
-            
+
             const midiData = await readMidiFile(file);
             const whmidData = convertMidiToWhmid(midiData);
 
@@ -45,57 +45,43 @@
         }
 
         function convertMidiToWhmid(midi) {
+            // WHMIDヘッダーの設定
             const header = new Uint8Array(4);
             header[0] = 0; // バージョン: 0
-            header[1] = midi.header.bpm; // テンポ（例示的に使用、実際のBPM値を使用する）
+            header[1] = midi.header.bpm; // テンポ（値を適切に設定）
 
-            // トラック情報を保存
+            // トラック数
             const trackCount = midi.tracks.length;
             const trackBuffer = new Uint16Array([trackCount]);
 
             const soundData = [];
             for (let track of midi.tracks) {
                 for (let note of track.notes) {
-                    // 音の高さ (MIDIノート番号をそのまま使用)
-                    const pitch = note.midi;
+                    const pitch = note.midi; // 音の高さ
+                    const instrumentId = track.instrument ? track.instrument : 0; // 楽器
+                    const duration = note.duration * 1000; // 持続時間 (ミリ秒)
+                    const startTime = note.time * 1000; // 開始時間 (ミリ秒)
 
-                    // 楽器の種類を取得（ここでは簡略化）
-                    const instrumentId = track.instrument || 0;
+                    // WHMID規格に従ってデータを追加
+                    const noteData = new Uint8Array(26); // 各ノートのデータサイズを確認し調整
 
-                    // 音の長さ
-                    const duration = note.duration * 1000; // 秒をミリ秒に変換
-                    const durationDivisor = 10.0; // ダミーの割る値
-
-                    // 曲の開始からの時間
-                    const startTime = note.time * 1000; // 秒をミリ秒に変換
-                    const timingDivisor = 10.0; // ダミーの割る値
-
-                    // テンポ（発音時の曲のテンポのため、例示として同じ値を使用します）
-                    const tempo = midi.header.bpm;
-
-                    // トラック情報（おそらく繰り返し利用するが、ここでは同じ値を保存）
-                    const trackInfo = trackCount;
-
-                    // データをWHMID規格で保存
-                    const noteData = new Uint8Array(26);
                     let offset = 0;
-
-                    noteData.set(new Uint16Array([pitch]).buffer, offset); offset += 2;
-                    noteData.set(new Uint16Array([instrumentId]).buffer, offset); offset += 2;
-                    noteData.set(new Uint32Array([duration]).buffer, offset); offset += 4;
-                    noteData.set(new Uint32Array([durationDivisor]).buffer, offset); offset += 4;
-                    noteData.set(new Uint32Array([startTime]).buffer, offset); offset += 6;
-                    noteData.set(new Uint32Array([timingDivisor]).buffer, offset); offset += 4;
-                    noteData.set(new Uint16Array([tempo]).buffer, offset); offset += 2;
-                    noteData.set(new Uint16Array([trackInfo]).buffer, offset); offset += 2;
+                    // 以下の行でオフセットを正確に管理
+                    new Uint16Array(noteData.buffer, offset, 1)[0] = pitch; offset += 2;
+                    new Uint16Array(noteData.buffer, offset, 1)[0] = instrumentId; offset += 2;
+                    new Uint32Array(noteData.buffer, offset, 1)[0] = duration; offset += 4;
+                    new Uint32Array(noteData.buffer, offset, 1)[0] = 10; offset += 4; // ダミーの割る値
+                    new Uint32Array(noteData.buffer, offset, 1)[0] = startTime; offset += 4; // ミリ秒
+                    new Uint32Array(noteData.buffer, offset, 1)[0] = 10; offset += 4; // ダミーの割る値
+                    new Uint16Array(noteData.buffer, offset, 1)[0] = midi.header.bpm; offset += 2;
+                    new Uint16Array(noteData.buffer, offset, 1)[0] = trackCount; // トラック情報
 
                     soundData.push(noteData);
                 }
             }
 
-            // WHMIDデータを組み立てる
+            // WHMIDデータの組み立て
             const fullData = new Uint8Array(header.length + trackBuffer.byteLength + soundData.reduce((acc, val) => acc + val.length, 0));
-
             let index = 0;
             fullData.set(header, index); index += header.length;
             fullData.set(new Uint8Array(trackBuffer.buffer), index); index += trackBuffer.byteLength;
