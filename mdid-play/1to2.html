@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>カスタムフォーマットからMIDIへ変換</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi"></script>
+</head>
+<body>
+    <h1>カスタムフォーマットからMIDIへ変換</h1>
+    <input type="file" id="customFormatInput" accept=".bin" />
+    <button id="convertToMidiButton" disabled>MIDIに変換</button>
+    <a id="downloadMidiLink" style="display: none;">MIDIファイルをダウンロード</a>
+
+    <script>
+        const customFormatInput = document.getElementById('customFormatInput');
+        const convertToMidiButton = document.getElementById('convertToMidiButton');
+        const downloadMidiLink = document.getElementById('downloadMidiLink');
+
+        let customData;
+
+        customFormatInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    customData = new Uint8Array(e.target.result);
+                    convertToMidiButton.disabled = false; // ボタンを有効化
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        convertToMidiButton.addEventListener('click', () => {
+            if (customData) {
+                const midi = new Midi();
+                const track = midi.addTrack('Track 1');
+
+                const headerVersion = customData[0]; // バージョン
+                const tempo = customData[1]; // テンポ
+
+                // データ本体の解析
+                for (let i = 4; i < customData.length; i += 24) {
+                    const pitch = customData[i]; // 音の高さ
+                    const instrument = 0; // 楽器ID（仮に0を使用）
+                    const noteLength = customData[i + 4]; // 音の長さ
+                    const startTime = customData[i + 12]; // 曲の開始からの時間
+
+                    // MIDIノートを追加
+                    track.addNote({
+                        midi: pitch,
+                        time: startTime,
+                        duration: noteLength, // そのまま音の長さを指定
+                        name: Midi.MIDINoteNames[pitch], // ノート名（オプション）
+                        velocity: 0.5 // 音量（0-1の範囲）
+                    });
+                }
+
+                // MIDIデータをエクスポート
+                const midiBlob = new Blob([midi.toArray()], { type: 'audio/midi' });
+
+                // ダウンロードリンクを作成
+                downloadMidiLink.href = URL.createObjectURL(midiBlob);
+                downloadMidiLink.download = 'convertedMidiFile.mid';
+                downloadMidiLink.innerText = 'MIDIファイルをダウンロード';
+                downloadMidiLink.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
