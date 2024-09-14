@@ -20,7 +20,7 @@
                 
                 whmid.setVersion(0);
                 whmid.setTempo(midiData.header.bpm);
-
+                
                 let startTime = 0;
 
                 midiData.tracks.forEach(track => {
@@ -39,10 +39,20 @@
                 });
 
                 // WHMIDファイルの生成
-                whmid.generateWhmidFile();
+                const generatedFile = await whmid.generateWhmidFile();
+                
+                // ダウンロード処理
+                downloadBlob(generatedFile, 'output.whmid');
             };
 
             reader.readAsArrayBuffer(file);
+        }
+
+        function downloadBlob(blob, filename) {
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
         }
 
         function onFileChange(event) {
