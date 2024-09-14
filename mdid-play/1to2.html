@@ -2,69 +2,80 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>カスタムフォーマットからMIDIへ変換</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi"></script>
+    <title>WHMID to MIDI Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.13/build/Midi.js"></script>
 </head>
 <body>
-    <h1>カスタムフォーマットからMIDIへ変換</h1>
-    <input type="file" id="customFormatInput" accept=".bin" />
-    <button id="convertToMidiButton" disabled>MIDIに変換</button>
-    <a id="downloadMidiLink" style="display: none;">MIDIファイルをダウンロード</a>
+    <h1>WHMID to MIDI Converter</h1>
+    <input type="file" id="whmidFileInput" accept=".whmid" />
+    <button id="convertToMidiButton">変換してMIDIに保存</button>
 
     <script>
-        const customFormatInput = document.getElementById('customFormatInput');
-        const convertToMidiButton = document.getElementById('convertToMidiButton');
-        const downloadMidiLink = document.getElementById('downloadMidiLink');
+        document.getElementById('convertToMidiButton').addEventListener('click', async () => {
+            const file = document.getElementById('whmidFileInput').files[0];
+            if (!file) {
+                alert('WHMIDファイルを選択してください。');
+                return;
+            }
+            
+            const whmidData = await readWhmidFile(file);
+            const midiData = convertWhmidToMidi(whmidData);
 
-        let customData;
+            const blob = new Blob([midiData], { type: 'audio/midi' });
+            const url = URL.createObjectURL(blob);
 
-        customFormatInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'output.mid';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        function readWhmidFile(file) {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    customData = new Uint8Array(e.target.result);
-                    convertToMidiButton.disabled = false; // ボタンを有効化
+                reader.onload = (event) => {
+                    resolve(new Uint8Array(event.target.result));
                 };
+                reader.onerror = reject;
                 reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function convertWhmidToMidi(whmid) {
+            const version = whmid[0];
+            const tempo = whmid[1];
+            const trackCount = new Uint16Array(whmid.buffer, 2, 1)[0];
+
+            const midi = new Midi();
+            midi.header.bpm = tempo;
+
+            for (let i = 0; i < trackCount; i++) {
+                const track = midi.addTrack();
+                const offset = 4 + (i * 26); // 各トラックのデータの開始位置
+
+                const pitch = new Uint16Array(whmid.buffer, offset, 1)[0];
+                const instrumentId = new Uint16Array(whmid.buffer, offset + 2, 1)[0];
+                const duration = new Uint32Array(whmid.buffer, offset + 4, 1)[0];
+                const durationDivisor = new Uint32Array(whmid.buffer, offset + 8, 1)[0];
+                const startTime = new Uint32Array(whmid.buffer, offset + 12, 1)[0];
+                const timingDivisor = new Uint32Array(whmid.buffer, offset + 16, 1)[0];
+
+                // 音の長さを時間に変換
+                const durationInSeconds = duration / 1000;
+
+                // ノートを追加する
+                track.addNote({
+                    midi: pitch,
+                    time: startTime / 1000, // WHMIDから秒に変換
+                    duration: durationInSeconds,
+                    velocity: 0.5, // デフォルトのベロシティ
+                    name: `Note ${pitch}` // 名前を設定する例
+                });
             }
-        });
 
-        convertToMidiButton.addEventListener('click', () => {
-            if (customData) {
-                const midi = new Midi();
-                const track = midi.addTrack('Track 1');
-
-                const headerVersion = customData[0]; // バージョン
-                const tempo = customData[1]; // テンポ
-
-                // データ本体の解析
-                for (let i = 4; i < customData.length; i += 24) {
-                    const pitch = customData[i]; // 音の高さ
-                    const instrument = 0; // 楽器ID（仮に0を使用）
-                    const noteLength = customData[i + 4]; // 音の長さ
-                    const startTime = customData[i + 12]; // 曲の開始からの時間
-
-                    // MIDIノートを追加
-                    track.addNote({
-                        midi: pitch,
-                        time: startTime,
-                        duration: noteLength, // そのまま音の長さを指定
-                        name: Midi.MIDINoteNames[pitch], // ノート名（オプション）
-                        velocity: 0.5 // 音量（0-1の範囲）
-                    });
-                }
-
-                // MIDIデータをエクスポート
-                const midiBlob = new Blob([midi.toArray()], { type: 'audio/midi' });
-
-                // ダウンロードリンクを作成
-                downloadMidiLink.href = URL.createObjectURL(midiBlob);
-                downloadMidiLink.download = 'convertedMidiFile.mid';
-                downloadMidiLink.innerText = 'MIDIファイルをダウンロード';
-                downloadMidiLink.style.display = 'block';
-            }
-        });
+            return midi.toArray();
+        }
     </script>
 </body>
 </html>
