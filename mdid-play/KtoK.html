@@ -9,9 +9,12 @@
 <body>
     <h1>MIDI to WHMID Converter</h1>
     <input type="file" id="midiFileInput" accept=".mid, .midi" />
+    <button id="convertButton" style="display: none;">Convert to WHMID</button>
     <button id="downloadButton" style="display: none;">Download WHMID</button>
 
     <script>
+        let outputUrl;
+
         document.getElementById('midiFileInput').addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -54,12 +57,23 @@
 
                 // WHMID形式のバイナリデータを作成
                 const blob = new Blob([JSON.stringify(output)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
+                outputUrl = URL.createObjectURL(blob);
 
-                document.getElementById('downloadButton').style.display = 'block';
+                // 変換ボタンとダウンロードボタンを表示
+                document.getElementById('convertButton').style.display = 'block';
+                document.getElementById('downloadButton').style.display = 'none';
+
+                document.getElementById('convertButton').onclick = function () {
+                    // データがない場合は何もしない
+                    if (!outputUrl) return;
+
+                    // ダウンロードボタンを表示
+                    document.getElementById('downloadButton').style.display = 'block';
+                };
+
                 document.getElementById('downloadButton').onclick = function () {
                     const a = document.createElement('a');
-                    a.href = url;
+                    a.href = outputUrl;
                     a.download = 'output.whmid';
                     document.body.appendChild(a);
                     a.click();
