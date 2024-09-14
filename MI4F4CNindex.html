@@ -6,12 +6,14 @@
     <title>MIDI to WHMID Converter</title>
     <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi/dist/Midi.umd.js"></script> <!-- MIDIライブラリ -->
     <script src="https://program-library.i-i.f5.si/js/WhmidLibrary/1.0.0.js"></script> <!-- WHMIDライブラリ -->
-    <script>
+<script>
+        let selectedFile = null;
+
         async function convertMidiToWhmid(file) {
             const reader = new FileReader();
 
             reader.onload = async function(event) {
-                const midiData = new Midi(event.target.result); // ここを修正
+                const midiData = new Midi(event.target.result);
                 const whmid = new WhmidLibrary();
                 
                 whmid.setVersion(0);
@@ -22,15 +24,15 @@
                 midiData.tracks.forEach(track => {
                     track.notes.forEach(note => {
                         whmid.addNote(
-                            note.midi,                             // 音のピッチ
-                            1,                                     // 楽器の種類 (例: 1)
-                            note.duration * 1000,                  // 音の長さ（ミリ秒）
-                            1,                                     // 長さの調整
-                            startTime,                             // 開始時間
-                            1,                                     // タイミングの調整
-                            midiData.header.bpm                    // ノートごとのテンポ
+                            note.midi,
+                            1,
+                            note.duration * 1000,
+                            1,
+                            startTime,
+                            1,
+                            midiData.header.bpm
                         );
-                        startTime += note.duration * 1000;        // 次の音符の開始時間を更新
+                        startTime += note.duration * 1000;
                     });
                 });
 
@@ -38,13 +40,17 @@
                 whmid.generateWhmidFile();
             };
 
-            reader.readAsArrayBuffer(file); // MIDIファイルをArrayBufferとして読む
+            reader.readAsArrayBuffer(file);
         }
 
         function onFileChange(event) {
-            const file = event.target.files[0];
-            if (file) {
-                convertMidiToWhmid(file);
+            selectedFile = event.target.files[0];
+            document.getElementById('convertButton').disabled = !selectedFile; // ファイルが選択されるまでボタンを無効化
+        }
+
+        function onConvertButtonClick() {
+            if (selectedFile) {
+                convertMidiToWhmid(selectedFile);
             }
         }
     </script>
@@ -52,6 +58,7 @@
 <body>
     <h1>MIDI to WHMID Converter</h1>
     <input type="file" id="midiFileInput" accept=".mid" onchange="onFileChange(event)" />
+    <button id="convertButton" onclick="onConvertButtonClick()" disabled>WHMIDファイルを生成</button>
     <p>上記のボックスにMIDIファイルをアップロードしてください。</p>
 </body>
 </html>
