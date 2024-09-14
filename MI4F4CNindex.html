@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI to WHMID Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi/dist/Midi.umd.js"></script> <!-- 絶対に必要なライブラリ -->
+    <script src="https://program-library.i-i.f5.si/js/WhmidLibrary/1.0.0.js"></script>
+    <script>
+        async function convertMidiToWhmid(file) {
+            const midiData = await Midi.fromFile(file);
+            const whmid = new WhmidLibrary();
+            whmid.setVersion(0);
+            whmid.setTempo(midiData.header.bpm);
+            
+            let startTime = 0;
+
+            midiData.tracks.forEach(track => {
+                track.notes.forEach(note => {
+                    whmid.addNote(
+                        note.midi,                        // 音のピッチ
+                        1,                               // 楽器の種類 (例: 1)
+                        note.duration * 1000,            // 音の長さ（ミリ秒）
+                        1,                                // 長さの調整
+                        startTime,                       // 開始時間
+                        1,                               // タイミングの調整
+                        midiData.header.bpm              // ノートごとのテンポ
+                    );
+                    startTime += note.duration * 1000;    // 次の音符の開始時間を更新
+                });
+            });
+
+            // WHMIDファイルの生成
+            whmid.generateWhmidFile();
+        }
+
+        function onFileChange(event) {
+            const file = event.target.files[0];
+            if (file) {
+                convertMidiToWhmid(file);
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>MIDI to WHMID Converter</h1>
+    <input type="file" id="midiFileInput" accept=".mid" onchange="onFileChange(event)" />
+    <p>上記のボックスにMIDIファイルをアップロードしてください。</p>
+</body>
+</html>
