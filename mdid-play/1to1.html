@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>MIDIをカスタムフォーマットに変換</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi"></script>
+</head>
+<body>
+    <h1>MIDIからカスタムフォーマットへの変換</h1>
+    <input type="file" id="midiFileInput" accept=".mid" />
+    <button id="convertButton" disabled>変換する</button>
+    <a id="downloadLink" style="display: none;">データをダウンロード</a>
+
+    <script>
+        const midiFileInput = document.getElementById('midiFileInput');
+        const convertButton = document.getElementById('convertButton');
+        const downloadLink = document.getElementById('downloadLink');
+
+        let midiData;
+
+        midiFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                Midi.fromFile(file).then((midi) => {
+                    midiData = midi;
+                    convertButton.disabled = false; // ボタンを有効化
+                });
+            }
+        });
+
+        convertButton.addEventListener('click', () => {
+            if (midiData) {
+                const outputData = [];
+
+                // ヘッダー情報
+                outputData.push(0); // バージョン
+                outputData.push(midiData.header.tempos[0].bpm); // 最初の曲のテンポ
+
+                // 各トラックの音データを解析
+                midiData.tracks.forEach(track => {
+                    track.notes.forEach(note => {
+                        // 音の高さ、楽器の種類、音の長さなど
+                        // 音の高さを2バイトで表現（例: 0-127の範囲）
+                        const pitch = note.midi; // MIDIピッチ
+                        const instrument = 0; // 楽器ID（仮に0とする）
+                        const noteLength = note.duration; // 音の長さ
+                        const lengthDivisor = 1; // 小数点を表現するための値
+                        const startTime = note.time; // 曲の開始からの時間
+                        const timingDivisor = 1; // タイミングを割る値
+                        const noteTempo = midiData.header.tempos[0].bpm; // 発音時の曲のテンポ
+
+                        // 24バイトのデータを組み立てる
+                        outputData.push(pitch, instrument, noteLength, lengthDivisor, startTime, timingDivisor, noteTempo);
+                    });
+                });
+
+                // バイナリデータを生成する
+                const byteArray = new Uint8Array(outputData);
+                const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+
+                // ダウンロードリンクを作成
+                downloadLink.href = URL.createObjectURL(blob);
+                downloadLink.download = 'customFormatData.bin';
+                downloadLink.innerText = '変換されたデータをダウンロード';
+                downloadLink.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
