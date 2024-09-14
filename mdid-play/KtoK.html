@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI to WHMID Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi/dist/Midi.Simplified.js"></script>
+</head>
+<body>
+    <h1>MIDI to WHMID Converter</h1>
+    <input type="file" id="midiFileInput" accept=".mid, .midi" />
+    <button id="downloadButton" style="display: none;">Download WHMID</button>
+
+    <script>
+        document.getElementById('midiFileInput').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const arrayBuffer = await file.arrayBuffer();
+                const midi = new Midi(arrayBuffer);
+
+                // ヘッダー情報を作成
+                const header = {
+                    version: 0,
+                    correction: new Uint8Array([0]), // 意味のない空白領域
+                };
+
+                // MIDIデータを収集
+                const jsonOutput = midi.tracks.flatMap(track => {
+                    let instrumentId = "Unknown";
+                    for (let event of track.events) {
+                        if (event.type === 'programChange') {
+                            instrumentId = event.number; // プログラムチェンジから楽器ID
+                            break;
+                        }
+                    }
+
+                    return track.notes.map(note => ({
+                        s: note.midi,
+                        tp: instrumentId, // 楽器のID
+                        m: Math.floor(note.duration * 1000),
+                        sw: 1.0,
+                        st: Math.floor(note.time * 1000),
+                        tw: 1.0,
+                        t: Math.round(midi.header.bpm / 60 * 1000),
+                        tr: track.name.substring(0, 2)
+                    }));
+                });
+
+                // ヘッダーとデータを結合
+                const output = {
+                    header: header,
+                    data: jsonOutput
+                };
+
+                // WHMID形式のバイナリデータを作成
+                const blob = new Blob([JSON.stringify(output)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                document.getElementById('downloadButton').style.display = 'block';
+                document.getElementById('downloadButton').onclick = function () {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'output.whmid';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+            }
+        });
+    </script>
+</body>
+</html>
