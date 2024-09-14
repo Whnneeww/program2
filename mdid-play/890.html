@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI to Binary Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@latest/build/Midi.umd.min.js"></script>
+    <style>
+        #downloadButton {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MIDI to Binary Converter</h1>
+    <input type="file" id="midiFile" accept=".mid, .midi">
+    <button id="convertButton" disabled>変換開始</button>
+    <button id="downloadButton" disabled>ダウンロード</button>
+
+    <script>
+        let binaryUrl;
+
+        document.getElementById('midiFile').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            document.getElementById('convertButton').disabled = !file;
+        });
+
+        document.getElementById('convertButton').addEventListener('click', async () => {
+            const fileInput = document.getElementById('midiFile');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const arrayBuffer = await file.arrayBuffer();
+            const midi = new Midi(arrayBuffer);
+            const jsonData = [];
+
+            midi.tracks.forEach((track, trackIndex) => {
+                track.notes.forEach(note => {
+                    jsonData.push({
+                        pitch: note.midi,
+                        instrument: track.name || `Track ${trackIndex + 1}`, // トラック名を動的に指定
+                        duration: note.duration,
+                        startTime: note.time * 1000, // ミリ秒に変換
+                        tempo: midi.header.tempos[0] ? midi.header.tempos[0].bpm : 120,
+                        trackIndex: trackIndex // トラックのインデックスを保持
+                    });
+                });
+            });
+
+            // バイナリファイルを生成
+            const binaryBuffer = generateBinaryBuffer(jsonData);
+            const binaryBlob = new Blob([binaryBuffer], { type: 'application/octet-stream' });
+            binaryUrl = URL.createObjectURL(binaryBlob);
+            const downloadButton = document.getElementById('downloadButton');
+            downloadButton.disabled = false; // ボタンを有効化
+            downloadButton.onclick = () => {
+                const binaryLink = document.createElement('a');
+                binaryLink.href = binaryUrl;
+                binaryLink.download = 'output.whmid'; // 拡張子を .whmid に変更
+                binaryLink.click();
+                URL.revokeObjectURL(binaryUrl);
+            };
+            downloadButton.innerText = 'ダウンロード準備完了！';
+            console.log(`バイナリファイルが生成されました: output.whmid`);
+        });
+
+        function generateBinaryBuffer(data) {
+            const headerSize = 2; // バージョン(1バイト) + 補正(1バイト)
+            const buffer = new ArrayBuffer(headerSize + data.length * 24); // ヘッダーサイズを考慮
+            const view = new DataView(buffer);
+
+            // ヘッダー情報
+            view.setUint8(0, 0); // バージョン: 0
+            view.setUint8(1, 0); // 補正: 読み取られてない空白
+
+            // ノート情報の追加
+            data.forEach((note, index) => {
+                const offset = headerSize + index * 24;
+
+                // トラック情報（2バイト）
+                view.setUint16(offset, note.trackIndex, true); // トラックインデックス
+
+                // 音の高さ（ピッチ、2バイト）
+                view.setUint16(offset + 2, note.pitch, true);
+
+                // 楽器の種類（ID、2バイト）
+                view.setUint16(offset + 4, 1, true); // 楽器IDは適宜変更してください
+
+                // 音の長さ（4バイト）
+                view.setUint32(offset + 6, Math.floor(note.duration * 1000), true); // 音の長さをミリ秒に変換
+
+                // 音の長さを割る値（4バイト）
+                view.setUint32(offset + 10, 1000, true); // 例: 小数点表現の値
+
+                // 曲の開始からの時間（6バイト）
+                const startTime = note.startTime; // ミリ秒を使用
+                view.setUint32(offset + 14, startTime, true); // 最初の4バイト
+                view.setUint16(offset + 18, 0, true); // 残りの2バイト（ダミー）
+
+                // タイミングを割る値（4バイト）
+                view.setUint32(offset + 20, 1000, true); // 例: 小数点表現の値
+
+                // テンポ（2バイト）
+                view.setUint16(offset + 22, note.tempo, true); // テンポ
+            });
+
+            return buffer;
+        }
+    </script>
+</body>
+</html>
