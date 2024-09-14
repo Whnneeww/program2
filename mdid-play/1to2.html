@@ -44,34 +44,33 @@
 
         function convertWhmidToMidi(whmid) {
             const version = whmid[0];
-            const tempo = whmid[1];
-            const trackCount = new Uint16Array(whmid.buffer, 2, 1)[0];
+            const tempo = whmid[1]; // ヘッダーからテンポを読み取る(適宜構造に合わせる)
+            const trackCount = new Uint16Array(whmid.buffer, 2, 1)[0]; // トラック数を取得
 
             const midi = new Midi();
-            midi.header.bpm = tempo;
+            midi.header.bpm = 120; // デフォルトのBPMを設定（適宜調整）
 
             for (let i = 0; i < trackCount; i++) {
                 const track = midi.addTrack();
                 const offset = 4 + (i * 26); // 各トラックのデータの開始位置
 
-                const pitch = new Uint16Array(whmid.buffer, offset, 1)[0];
-                const instrumentId = new Uint16Array(whmid.buffer, offset + 2, 1)[0];
-                const duration = new Uint32Array(whmid.buffer, offset + 4, 1)[0];
-                const durationDivisor = new Uint32Array(whmid.buffer, offset + 8, 1)[0];
-                const startTime = new Uint32Array(whmid.buffer, offset + 12, 1)[0];
-                const timingDivisor = new Uint32Array(whmid.buffer, offset + 16, 1)[0];
+                // WHMIDからデータを取得
+                const noteCount = new Uint16Array(whmid.buffer, offset, 1)[0]; // ノート数
+                offset += 2; // 次のデータへ移動
 
-                // 音の長さを時間に変換
-                const durationInSeconds = duration / 1000;
+                for (let n = 0; n < noteCount; n++) {
+                    const pitch = new Uint16Array(whmid.buffer, offset + n * 8, 2)[0]; // 音の高さ
+                    const duration = new Uint16Array(whmid.buffer, offset + n * 8 + 2, 2)[0]; // 音の持続時間
+                    const startTime = new Uint32Array(whmid.buffer, offset + n * 8 + 4, 1)[0]; // 開始時間
 
-                // ノートを追加する
-                track.addNote({
-                    midi: pitch,
-                    time: startTime / 1000, // WHMIDから秒に変換
-                    duration: durationInSeconds,
-                    velocity: 0.5, // デフォルトのベロシティ
-                    name: `Note ${pitch}` // 名前を設定する例
-                });
+                    // MIDIノートを追加
+                    track.addNote({
+                        midi: pitch,
+                        time: startTime / 1000, // WHMIDから秒に変換
+                        duration: duration / 1000, // 音の持続時間も秒に変換
+                        velocity: 0.5 // ベロシティの設定
+                    });
+                }
             }
 
             return midi.toArray();
