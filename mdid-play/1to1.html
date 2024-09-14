@@ -2,69 +2,111 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MIDIをカスタムフォーマットに変換</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi"></script>
+    <title>MIDI to WHMID Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.13/build/Midi.js"></script>
 </head>
 <body>
-    <h1>MIDIからカスタムフォーマットへの変換</h1>
+    <h1>MIDI to WHMID Converter</h1>
     <input type="file" id="midiFileInput" accept=".mid" />
-    <button id="convertButton" disabled>変換する</button>
-    <a id="downloadLink" style="display: none;">データをダウンロード</a>
+    <button id="convertToWhmidButton">変換してWHMIDに保存</button>
 
     <script>
-        const midiFileInput = document.getElementById('midiFileInput');
-        const convertButton = document.getElementById('convertButton');
-        const downloadLink = document.getElementById('downloadLink');
-
-        let midiData;
-
-        midiFileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                Midi.fromFile(file).then((midi) => {
-                    midiData = midi;
-                    convertButton.disabled = false; // ボタンを有効化
-                });
+        document.getElementById('convertToWhmidButton').addEventListener('click', async () => {
+            const file = document.getElementById('midiFileInput').files[0];
+            if (!file) {
+                alert('MIDIファイルを選択してください。');
+                return;
             }
+            
+            const midiData = await readMidiFile(file);
+            const whmidData = convertMidiToWhmid(midiData);
+
+            const blob = new Blob([whmidData], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'output.whmid';
+            a.click();
+            URL.revokeObjectURL(url);
         });
 
-        convertButton.addEventListener('click', () => {
-            if (midiData) {
-                const outputData = [];
+        function readMidiFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const midiArray = new Uint8Array(event.target.result);
+                    const midi = new Midi(midiArray);
+                    resolve(midi);
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
 
-                // ヘッダー情報
-                outputData.push(0); // バージョン
-                outputData.push(midiData.header.tempos[0].bpm); // 最初の曲のテンポ
+        function convertMidiToWhmid(midi) {
+            const header = new Uint8Array(4);
+            header[0] = 0; // バージョン: 0
+            header[1] = midi.header.bpm; // テンポ（例示的に使用、実際のBPM値を使用する）
 
-                // 各トラックの音データを解析
-                midiData.tracks.forEach(track => {
-                    track.notes.forEach(note => {
-                        // 音の高さ、楽器の種類、音の長さなど
-                        // 音の高さを2バイトで表現（例: 0-127の範囲）
-                        const pitch = note.midi; // MIDIピッチ
-                        const instrument = 0; // 楽器ID（仮に0とする）
-                        const noteLength = note.duration; // 音の長さ
-                        const lengthDivisor = 1; // 小数点を表現するための値
-                        const startTime = note.time; // 曲の開始からの時間
-                        const timingDivisor = 1; // タイミングを割る値
-                        const noteTempo = midiData.header.tempos[0].bpm; // 発音時の曲のテンポ
+            // トラック情報を保存
+            const trackCount = midi.tracks.length;
+            const trackBuffer = new Uint16Array([trackCount]);
 
-                        // 24バイトのデータを組み立てる
-                        outputData.push(pitch, instrument, noteLength, lengthDivisor, startTime, timingDivisor, noteTempo);
-                    });
-                });
+            const soundData = [];
+            for (let track of midi.tracks) {
+                for (let note of track.notes) {
+                    // 音の高さ (MIDIノート番号をそのまま使用)
+                    const pitch = note.midi;
 
-                // バイナリデータを生成する
-                const byteArray = new Uint8Array(outputData);
-                const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+                    // 楽器の種類を取得（ここでは簡略化）
+                    const instrumentId = track.instrument || 0;
 
-                // ダウンロードリンクを作成
-                downloadLink.href = URL.createObjectURL(blob);
-                downloadLink.download = 'customFormatData.bin';
-                downloadLink.innerText = '変換されたデータをダウンロード';
-                downloadLink.style.display = 'block';
+                    // 音の長さ
+                    const duration = note.duration * 1000; // 秒をミリ秒に変換
+                    const durationDivisor = 10.0; // ダミーの割る値
+
+                    // 曲の開始からの時間
+                    const startTime = note.time * 1000; // 秒をミリ秒に変換
+                    const timingDivisor = 10.0; // ダミーの割る値
+
+                    // テンポ（発音時の曲のテンポのため、例示として同じ値を使用します）
+                    const tempo = midi.header.bpm;
+
+                    // トラック情報（おそらく繰り返し利用するが、ここでは同じ値を保存）
+                    const trackInfo = trackCount;
+
+                    // データをWHMID規格で保存
+                    const noteData = new Uint8Array(26);
+                    let offset = 0;
+
+                    noteData.set(new Uint16Array([pitch]).buffer, offset); offset += 2;
+                    noteData.set(new Uint16Array([instrumentId]).buffer, offset); offset += 2;
+                    noteData.set(new Uint32Array([duration]).buffer, offset); offset += 4;
+                    noteData.set(new Uint32Array([durationDivisor]).buffer, offset); offset += 4;
+                    noteData.set(new Uint32Array([startTime]).buffer, offset); offset += 6;
+                    noteData.set(new Uint32Array([timingDivisor]).buffer, offset); offset += 4;
+                    noteData.set(new Uint16Array([tempo]).buffer, offset); offset += 2;
+                    noteData.set(new Uint16Array([trackInfo]).buffer, offset); offset += 2;
+
+                    soundData.push(noteData);
+                }
             }
-        });
+
+            // WHMIDデータを組み立てる
+            const fullData = new Uint8Array(header.length + trackBuffer.byteLength + soundData.reduce((acc, val) => acc + val.length, 0));
+
+            let index = 0;
+            fullData.set(header, index); index += header.length;
+            fullData.set(new Uint8Array(trackBuffer.buffer), index); index += trackBuffer.byteLength;
+
+            // 音データを全て追加
+            soundData.forEach(data => {
+                fullData.set(data, index); index += data.length;
+            });
+
+            return fullData;
+        }
     </script>
 </body>
 </html>
