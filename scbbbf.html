@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON ダウンローダー</title>
+</head>
+<body>
+    <h1>Scratch コメント ダウンローダー</h1>
+    <button id="downloadButton">JSONをダウンロード</button>
+
+    <script>
+        document.getElementById('downloadButton').addEventListener('click', async () => {
+            const url = 'https://scratch.mit.edu/site-api/comments/project/1067944814/';
+            try {
+                // JSONを取得
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('ネットワークエラーが発生しました');
+                }
+                const data = await response.json();
+
+                // JSONをダウンロード
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'scratch_comments.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('エラー:', error);
+                alert('エラーが発生しました: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
