@@ -3,36 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON ダウンローダー</title>
+    <title>MIDI to WHMID Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi"></script>
+    <script>
+document.getElementById('convertButton').addEventListener('click', function() {
+    const midiFileInput = document.getElementById('midiFile');
+    const file = midiFileInput.files[0];
+
+    if (!file) {
+        alert('MIDIファイルを選択してください！');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(event) {
+        const arrayBuffer = event.target.result;
+
+        // MIDIファイルを解析
+        const midi = new Midi(arrayBuffer);
+        const whmidData = generateWhmid(midi);
+        downloadWhmid(whmidData);
+    };
+    
+    reader.readAsArrayBuffer(file);
+});
+
+function generateWhmid(midi) {
+    const whmidArray = [];
+    
+    // ヘッダ情報
+    whmidArray.push(0); // バージョン
+    whmidArray.push(0); // 補正（意味のない空白領域）
+
+    // テンポを取得（最初のテンポを使用）
+    const tempo = midi.header.getTempo(); // BPMを取得
+    const tempoBPM = Math.round(tempo.bpm); // 整数に切り上げ
+
+    // MIDIの各トラックを走査する
+    midi.tracks.forEach(track => {
+        // 楽器番号（MIDIプログラム番号）を取得
+        const instrumentId = track.instrument ? track.instrument : 0; // 楽器の種類を取得（デフォルトは0）
+
+        track.notes.forEach(note => {
+            const noteNumber = note.midi; // 音の高さ（C4など）
+            const noteLength = note.duration; // 音の長さ
+            const startTime = note.time; // 曲の開始からの時間
+
+            // WHMID形式に変換
+            whmidArray.push(noteNumber & 0xFF, (noteNumber >> 8) & 0xFF); // 2バイト音の高さ
+            whmidArray.push(instrumentId & 0xFF, (instrumentId >> 8) & 0xFF); // 2バイト楽器の種類
+            whmidArray.push(...intToBytes(noteLength * 1000, 4)); // 4バイト音の長さ（ミリ秒に変換）
+            whmidArray.push(...intToBytes(1, 4)); // 4バイト音の長さを割る値（仮に1）
+            whmidArray.push(...intToBytes(startTime * 1000, 6)); // 6バイト曲の開始からの時間（ミリ秒に変換）
+            whmidArray.push(...intToBytes(1, 4)); // 4バイトタイミングを割る値（仮に1）
+            whmidArray.push(tempoBPM & 0xFF, (tempoBPM >> 8) & 0xFF); // 2バイトテンポ（BPM）
+        });
+    });
+
+    return new Uint8Array(whmidArray);
+}
+
+function downloadWhmid(whmidData) {
+    const blob = new Blob([whmidData], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.getElementById('downloadLink');
+    
+    downloadLink.href = url;
+    downloadLink.download = 'output.whmid';
+    downloadLink.style.display = 'block';
+    downloadLink.innerText = 'ここをクリックしてダウンロード';
+}
+
+function intToBytes(value, byteCount) {
+    const bytes = [];
+    for (let i = 0; i < byteCount; i++) {
+        bytes.push(value & 0xFF);
+        value = value >> 8;
+    }
+    return bytes.reverse(); // リトルエンディアンなので逆にする
+}
+</script>
 </head>
 <body>
-    <h1>Scratch コメント ダウンローダー</h1>
-    <button id="downloadButton">JSONをダウンロード</button>
-
-    <script>
-        document.getElementById('downloadButton').addEventListener('click', async () => {
-            const url = 'https://scratch.mit.edu/site-api/comments/project/1067944814/';
-            try {
-                // JSONを取得
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error('ネットワークエラーが発生しました');
-                }
-                const data = await response.json();
-
-                // JSONをダウンロード
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = 'scratch_comments.json';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } catch (error) {
-                console.error('エラー:', error);
-                alert('エラーが発生しました: ' + error.message);
-            }
-        });
-    </script>
+    <h1>MIDI to WHMID Converter</h1>
+    <input type="file" id="midiFile" accept=".mid, .midi">
+    <button id="convertButton">変換する</button>
+    <a id="downloadLink" style="display: none;"></a>
 </body>
 </html>
