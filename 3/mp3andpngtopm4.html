@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>MP3 to MP4 Converter</title>
+    <style>
+        #videoContainer {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>MP3と画像を使ったMP4ビデオプレイヤー</h1>
+    
+    <input type="file" id="audioFile" accept="audio/mp3">
+    <input type="file" id="imageFile" accept="image/*">
+    <button id="createVideoBtn">MP4を作成</button>
+
+    <div id="videoContainer">
+        <video id="videoPlayer" controls autoplay style="display: none;">
+            <source id="videoSource" src="" type="video/mp4">
+            お使いのブラウザはvideoタグに対応していません。
+        </video>
+        <a id="downloadLink" style="display: none;">動画をダウンロード</a>
+    </div>
+
+    <script>
+        document.getElementById('createVideoBtn').addEventListener('click', async () => {
+            const audioFile = document.getElementById('audioFile').files[0];
+            const imageFile = document.getElementById('imageFile').files[0];
+
+            if (audioFile && imageFile) {
+                const audioURL = URL.createObjectURL(audioFile);
+                const imgURL = URL.createObjectURL(imageFile);
+
+                // Canvasを設定
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+
+                img.src = imgURL;
+                img.onload = async () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    // 音声を設定
+                    const audio = new Audio(audioURL);
+                    const stream = canvas.captureStream(30); // 30fps
+                    const mediaRecorder = new MediaRecorder(stream);
+                    const chunks = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        chunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: 'video/mp4' });
+                        const videoURL = URL.createObjectURL(blob);
+                        const downloadLink = document.getElementById('downloadLink');
+
+                        downloadLink.href = videoURL;
+                        downloadLink.download = 'output.mp4';
+                        downloadLink.style.display = 'block';
+                        downloadLink.textContent = '動画をダウンロード';
+
+                        // 動画を表示
+                        const videoPlayer = document.getElementById('videoPlayer');
+                        videoPlayer.src = videoURL;
+                        videoPlayer.style.display = 'block';
+                        videoPlayer.play();
+                    };
+
+                    mediaRecorder.start();
+                    audio.play();
+                    videoPlayer.srcObject = stream;
+                    videoPlayer.play();
+                    requestAnimationFrame(function render() {
+                        ctx.drawImage(img, 0, 0);
+                        if (videoPlayer.paused || videoPlayer.ended) return;
+                        requestAnimationFrame(render);
+                    });
+
+                    // 音声が終わったら停止する
+                    audio.onended = () => {
+                        mediaRecorder.stop();
+                    };
+                };
+            } else {
+                alert('両方のファイルを選択してください。');
+            }
+        });
+    </script>
+</body>
+</html>
