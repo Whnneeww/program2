@@ -19,7 +19,8 @@
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const item = new WhneewwItem(file.name, "file");
+                const fileData = await file.arrayBuffer(); // ファイルデータをArrayBufferとして取得
+                const item = new WhneewwItem(file.name, "file", fileData); // ファイルデータを渡す
                 items.push(item);
             }
 
