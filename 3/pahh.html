@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhnアーカイブをZIPに変換</title>
+    <title>Whnアーカイブを抽出してダウンロード</title>
     <script src="https://program-library.i-i.f5.si/js/whn/2.0.1.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
-    <h1>WhnアーカイブをZIPに変換</h1>
+    <h1>Whnアーカイブを抽出してダウンロード</h1>
     <input type="file" id="archiveInput" accept=".whn" />
     <button onclick="document.getElementById('archiveInput').click()">アーカイブを選択</button>
 
@@ -18,41 +17,27 @@
             if (archiveFile) {
                 try {
                     const items = await WhneewwArchive.extract(archiveFile);
-                    console.log(items); // ここで中身を確認
+                    console.log(items); // 中身の確認
 
-                    const zip = new JSZip();
-
-                    // 各アイテムをZIPに追加
+                    // 各アイテムをダウンロード
                     items.forEach(item => {
-                        try {
-                            console.log("追加するアイテム:", item.name, item.data); // デバッグ情報
-                            zip.file(item.name, item.data); // バイナリデータをそのままファイルとして追加
-                        } catch (itemError) {
-                            console.error("アイテムの追加中にエラーが発生しました:", itemError.message);
-                        }
+                        // ダウンロードリンクを作成
+                        const blob = new Blob([item.data], { type: 'application/octet-stream' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = item.name; // 元のファイル名で保存
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url); // メモリ解放
                     });
-
-                    // ZIPファイルを生成
-                    const blob = await zip.generateAsync({ type: 'blob' });
-                    downloadZip(blob);
                 } catch (error) {
                     console.error("エラー:", error.message);
-                    alert("アーカイブの変換に失敗しました: " + error.message);
+                    alert("アーカイブの抽出に失敗しました: " + error.message);
                 }
             }
         });
-
-        function downloadZip(blob) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'archive.zip'; // 保存するZIPファイル名
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url); // メモリ解放
-            alert("ZIPファイルがダウンロードされました！");
-        }
     </script>
 </body>
 </html>
