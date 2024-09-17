@@ -12,32 +12,34 @@
     <button id="createArchiveButton">アーカイブを作成</button>
 
     <script>
-        document.getElementById('createArchiveButton').addEventListener('click', async () => {
-            const fileInput = document.getElementById('fileInput');
-            const files = fileInput.files;
-            const items = [];
+    document.getElementById('createArchiveButton').addEventListener('click', async () => {
+        const fileInput = document.getElementById('fileInput');
+        const files = fileInput.files;
+        const items = [];
 
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const fileData = await file.arrayBuffer(); // ファイルデータをArrayBufferとして取得
-                const item = new WhneewwItem(file.name, "file", fileData); // ファイルデータを渡す
-                items.push(item);
-            }
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            // FileReaderを使ってファイルのデータを取得する
+            const arrayBuffer = await file.arrayBuffer();
+            const item = new WhneewwItem(file.name, "file");
+            item.data = new Uint8Array(arrayBuffer); // ファイルデータを設定
+            items.push(item);
+        }
 
-            // アーカイブを作成する
-            const blob = WhneewwArchive.create(items);
+        // アーカイブを作成する
+        const blob = WhneewwArchive.create(items);
 
-            // アーカイブをダウンロードする
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'uploaded_archive.whn';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            alert("アーカイブがダウンロードされました！");
-        });
+        // アーカイブをダウンロードする
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'uploaded_archive.whn';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert("アーカイブがダウンロードされました！");
+    });
     </script>
 </body>
 </html>
