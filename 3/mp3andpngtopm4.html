@@ -2,93 +2,40 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MP3 to MP4 Converter</title>
-    <style>
-        #videoContainer {
-            display: none;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ファイルアップロードとアーカイブ作成</title>
+    <script src="https://program-library.i-i.f5.si/js/whn/2.0.1.js"></script>
 </head>
 <body>
-    <h1>MP3と画像を使ったMP4ビデオプレイヤー</h1>
-    
-    <input type="file" id="audioFile" accept="audio/mp3">
-    <input type="file" id="imageFile" accept="image/*">
-    <button id="createVideoBtn">MP4を作成</button>
-
-    <div id="videoContainer">
-        <video id="videoPlayer" controls autoplay style="display: none;">
-            <source id="videoSource" src="" type="video/mp4">
-            お使いのブラウザはvideoタグに対応していません。
-        </video>
-        <a id="downloadLink" style="display: none;">動画をダウンロード</a>
-    </div>
+    <h1>ファイルアップロードしてアーカイブ作成</h1>
+    <input type="file" id="fileInput" multiple />
+    <button id="createArchiveButton">アーカイブを作成</button>
 
     <script>
-        document.getElementById('createVideoBtn').addEventListener('click', async () => {
-            const audioFile = document.getElementById('audioFile').files[0];
-            const imageFile = document.getElementById('imageFile').files[0];
+        document.getElementById('createArchiveButton').addEventListener('click', async () => {
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            const items = [];
 
-            if (audioFile && imageFile) {
-                const audioURL = URL.createObjectURL(audioFile);
-                const imgURL = URL.createObjectURL(imageFile);
-
-                // Canvasを設定
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const img = new Image();
-
-                img.src = imgURL;
-                img.onload = async () => {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-
-                    // 音声を設定
-                    const audio = new Audio(audioURL);
-                    const stream = canvas.captureStream(30); // 30fps
-                    const mediaRecorder = new MediaRecorder(stream);
-                    const chunks = [];
-
-                    mediaRecorder.ondataavailable = (event) => {
-                        chunks.push(event.data);
-                    };
-
-                    mediaRecorder.onstop = () => {
-                        const blob = new Blob(chunks, { type: 'video/mp4' });
-                        const videoURL = URL.createObjectURL(blob);
-                        const downloadLink = document.getElementById('downloadLink');
-
-                        downloadLink.href = videoURL;
-                        downloadLink.download = 'output.mp4';
-                        downloadLink.style.display = 'block';
-                        downloadLink.textContent = '動画をダウンロード';
-
-                        // 動画を表示
-                        const videoPlayer = document.getElementById('videoPlayer');
-                        videoPlayer.src = videoURL;
-                        videoPlayer.style.display = 'block';
-                        videoPlayer.play();
-                    };
-
-                    mediaRecorder.start();
-                    audio.play();
-                    videoPlayer.srcObject = stream;
-                    videoPlayer.play();
-                    requestAnimationFrame(function render() {
-                        ctx.drawImage(img, 0, 0);
-                        if (videoPlayer.paused || videoPlayer.ended) return;
-                        requestAnimationFrame(render);
-                    });
-
-                    // 音声が終わったら停止する
-                    audio.onended = () => {
-                        mediaRecorder.stop();
-                    };
-                };
-            } else {
-                alert('両方のファイルを選択してください。');
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const item = new WhneewwItem(file.name, "file");
+                items.push(item);
             }
+
+            // アーカイブを作成する
+            const blob = WhneewwArchive.create(items);
+
+            // アーカイブをダウンロードする
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'uploaded_archive.whn';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert("アーカイブがダウンロードされました！");
         });
     </script>
 </body>
