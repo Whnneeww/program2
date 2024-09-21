@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リアルタイム移動速度表示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>リアルタイム移動速度表示</h1>
+    <div id="speedDisplay">現在の移動速度: 0 m/s | 0 m/min | 0 km/h</div>
+    <div id="distanceDisplay">移動距離: 0 m | 0 km</div>
+    <script>
+let previousPosition = null;
+let totalDistance = 0; // 総移動距離（メートル）
+
+if (navigator.geolocation) {
+    navigator.geolocation.watchPosition((position) => {
+        if (previousPosition) {
+            const distance = calculateDistance(previousPosition.coords.latitude, previousPosition.coords.longitude, 
+                                                position.coords.latitude, position.coords.longitude);
+            totalDistance += distance; // 総距離を更新
+
+            const timeElapsed = (position.timestamp - previousPosition.timestamp) / 1000; // 秒に変換
+            const speedMps = distance / timeElapsed; // m/s
+            const speedMpm = speedMps * 60; // m/min
+            const speedKph = (speedMps * 3.6).toFixed(2); // km/h
+
+            // 表示更新
+            document.getElementById('speedDisplay').innerText = 
+                `現在の移動速度: ${speedMps.toFixed(2)} m/s | ${speedMpm.toFixed(2)} m/min | ${speedKph} km/h`;
+            document.getElementById('distanceDisplay').innerText = 
+                `移動距離: ${totalDistance.toFixed(2)} m | ${(totalDistance / 1000).toFixed(2)} km`;
+        }
+        previousPosition = position;
+    }, (error) => {
+        console.error("位置情報の取得に失敗しました: ", error);
+    });
+} else {
+    console.log("このブラウザはGeolocation APIをサポートしていません。");
+}
+
+// 位置間の距離を計算する関数（ハバーサイン法）
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // 地球の半径（メートル）
+    const φ1 = lat1 * Math.PI / 180; // 緯度をラジアンに変換
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // 距離をメートルで返す
+}
+    </script>
+</body>
+</html>
