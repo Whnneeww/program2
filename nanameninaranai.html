@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像フルスクリーン表示</title>
+    <title>傾かない画像</title>
     <style>
         body {
             display: flex;
@@ -14,16 +14,14 @@
             margin: 0;
         }
         #imageContainer {
-            position: fixed; /* フルスクリーンにするためにfixedにする */
-            top: 0;
-            left: 0;
-            width: 100vw; /* ビューポート全体を使用 */
-            height: 100vh; /* ビューポート全体を使用 */
+            position: relative;
             overflow: hidden;
+            width: 300px;
+            height: 300px;
+            border: 1px solid #ccc;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: black; /* 背景を黒に設定 */
         }
         img {
             max-width: 100%;
@@ -37,7 +35,6 @@
 
     <h1>斜めにならない画像</h1>
     <input type="file" id="fileInput" accept="image/*">
-    
     <div id="imageContainer">
         <img id="selectedImage" src="" alt="選択した画像がここに表示されます" hidden>
     </div>
