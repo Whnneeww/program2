@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>画像ピクセル変換ツール</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <h1>画像ピクセルデータを変換</h1>
-    <input type="file" id="imageInput" accept="image/*" />
+    <input type="file" id="imageInput" accept="image/*" multiple />
     <button id="convertButton" disabled>変換して保存</button>
 
     <script>
@@ -19,43 +20,53 @@
         });
 
         convertButton.addEventListener('click', async () => {
-            const file = imageInput.files[0];
-            const img = new Image();
-            const reader = new FileReader();
+            const files = Array.from(imageInput.files);
+            const zip = new JSZip();
 
-            reader.onload = (e) => {
-                img.src = e.target.result;
+            for (const file of files) {
+                const img = new Image();
+                const reader = new FileReader();
 
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    const imageData = ctx.getImageData(0, 0, img.width, img.height);
-                    const data = imageData.data;
+                reader.onload = (e) => {
+                    img.src = e.target.result;
 
-                    let result = '';
-                    for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+                        const data = imageData.data;
 
-                        // RGBを使って白黒判定（閾値を127で設定）
-                        const brightness = (r + g + b) / 3;
-                        result += (brightness < 127) ? '0' : '1';
-                    }
+                        let result = '';
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i];
+                            const g = data[i + 1];
+                            const b = data[i + 2];
 
-                    // テキストファイルを作成してダウンロード
-                    const blob = new Blob([result], { type: 'text/plain' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = 'image_pixels.txt';
-                    link.click();
+                            // RGBを使って白黒判定（閾値を127で設定）
+                            const brightness = (r + g + b) / 3;
+                            result += (brightness < 127) ? '0' : '1';
+                        }
+
+                        // ZIPファイルにテキストデータを追加
+                        zip.file(`${file.name}_pixels.txt`, result);
+
+                        // すべてのファイルの処理が完了したらZIPを生成してダウンロード
+                        if (files.indexOf(file) === files.length - 1) {
+                            zip.generateAsync({ type: "blob" }).then((content) => {
+                                const link = document.createElement('a');
+                                link.href = URL.createObjectURL(content);
+                                link.download = 'image_pixels.zip'; // ZIPファイル名
+                                link.click();
+                            });
+                        }
+                    };
                 };
-            };
 
-            reader.readAsDataURL(file);
+                reader.readAsDataURL(file);
+            }
         });
     </script>
 </body>
