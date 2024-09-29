@@ -30,33 +30,39 @@
             await ffmpeg.run("-i", "video.mp4");
 
             // デバッグ用の出力を取得
-            const videoInfo = ffmpeg.FS("readFile", "video.mp4");
-            const infoStr = await new TextDecoder().decode(videoInfo);
-            console.log(infoStr); // このログからFPSを解析
+            const infoStr = await ffmpeg.FS("readFile", "video.mp4");
+            const infoOutput = new TextDecoder().decode(infoStr);
+            console.log(infoOutput); // このログからFPSを解析
 
             // FPSを自動で取得（正規表現で年齢を抽出）
-            const fpsMatch = /(\d{1,}) fps/.exec(infoStr); // FPSを正規表現で取得
+            const fpsMatch = /(\d{1,}) fps/.exec(infoOutput); // FPSを正規表現で取得
             const fps = fpsMatch ? fpsMatch[1] : 1; // FPSが取得できなければ1に設定
             console.log(`Detected FPS: ${fps}`);
 
             // フレームをすべて抽出
             await ffmpeg.run("-i", "video.mp4", "-vf", `fps=${fps}`, "frame_%04d.png");
 
-            // ZIP作成
-            const zip = new JSZip();
+            // フレームの合計数を計算
             let frameCount = 0;
-
-            // フレームの抽出数を取得（ファイルを列挙する形式で）
             while (true) {
-                const frameFileName = `frame_${String(frameCount + 1).padStart(4, '0')}.png`;
                 try {
-                    const data = ffmpeg.FS("readFile", frameFileName);
-                    zip.file(frameFileName, data);
+                    await ffmpeg.FS("readFile", `frame_${String(frameCount + 1).padStart(4, '0')}.png`);
                     frameCount++;
-                    updateProgress((frameCount / (frameCount + 1)) * 100); // 進捗更新
                 } catch (e) {
                     break; // フレームが見つからなければ終了
                 }
+            }
+
+            // ZIP作成
+            const zip = new JSZip();
+            let processedCount = 0;
+
+            for (let i = 0; i < frameCount; i++) {
+                const frameFileName = `frame_${String(i + 1).padStart(4, '0')}.png`;
+                const data = ffmpeg.FS("readFile", frameFileName);
+                zip.file(frameFileName, data);
+                processedCount++;
+                updateProgress((processedCount / frameCount) * 100); // 進捗更新
             }
 
             const content = await zip.generateAsync({ type: "blob" });
