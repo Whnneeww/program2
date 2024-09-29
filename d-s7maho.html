@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スマホ振動</title>
+    <script>
+        // 振動パターンをJSON形式で定義（秒単位）
+        const vibrationPattern = {
+            "pattern": [0.5, 0.2, 0.5, 0.3, 1.0]
+        };
+
+        function vibratePhone() {
+            if ("vibrate" in navigator) {
+                // 秒をミリ秒に変換して振動パターンを用意
+                const patternInMilliseconds = vibrationPattern.pattern.map(seconds => seconds * 1000);
+                navigator.vibrate(patternInMilliseconds);
+            } else {
+                alert("このブラウザは振動機能をサポートしていません。");
+            }
+        }
+
+        // ページが読み込まれた際に振動を開始
+        window.onload = function() {
+            vibratePhone();
+        };
+    </script>
+</head>
+<body>
+    <h1>スマホ振動</h1>
+    <p>ページが開かれた際に自動的に振動が始まります。</p>
+</body>
+</html>
